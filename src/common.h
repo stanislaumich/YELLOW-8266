@@ -18,9 +18,14 @@
 
 #define pinp D2
 
+
+
+#define myTele "357390016"
 String Esp32Clock="Lz42Esp32Clock";
 String S868 ="519049530";
-String addme="=947749033=";
+String myID="686030737";
+
+String myName="Lz428266YE";
 
 int XMLb0;
 int XMLb1;

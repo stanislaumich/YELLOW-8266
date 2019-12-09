@@ -10,84 +10,70 @@
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 #define myTele "357390016"
-//#ifndef myWeb
-// #include "myWebServer.h"
-//#endif
-String millis2time();
 
 #define BOTtoken "1009154974:AAH10HBoPPbVbUvyainn_UyDmGve3YEZNEQ"
-//#define BOTname "Lz42-8266"
-//#define BOTusername "Lz428266Bot"
 
 BearSSL::WiFiClientSecure client;
 UniversalTelegramBot bot(BOTtoken, client); 
- 
-//String Esp32Clock="Lz42Esp32Clock";
-//String S868 ="519049530";
-//String addme="=947749033=";
+
 int Bot_mtbs = 1000; 
 long Bot_lasttime;   
 bool Start = false;
-
 const int ledPin = 13;
 int ledStatus = 0; 
-/*
-String millis2time(){
-  String Time="";
-  unsigned long ss;
-  byte mm,hh;
-  ss=millis()/1000;
-  hh=ss/3600;
-  mm=(ss-hh*3600)/60;
-  ss=(ss-hh*3600)-mm*60;
-  if(hh<10)Time+="0";
-  Time+=(String)hh+":";
-  if(mm<10)Time+="0";
-  Time+=(String)mm+":";
-  if(ss<10)Time+="0";
-  Time+=(String)ss;
-  return Time;
- }
-*/
+volatile bool debug=1;
+String from_name="";
 
-void sendtobot(String ch_id, String mess){
-  String m="="+ch_id+"="+mess;
+String execCommand(String chat_id, String text);
+String millis2time();
+
+
+String sendtobot(String ch_id, String mess){
+  String m="="+ch_id+"="+myName+"="+mess;
+  if(debug){
+   bot.sendMessage(myTele, m, "");
+  } 
   bot.sendMessage(S868, m, "");
+  return m;
 }
 
-void handleNewMessages(int numNewMessages) {
-  Serial.println("handleNewMessages");
-  Serial.println(String(numNewMessages));
+void answerbot(String chat_id, String text){
+  text.remove(0,1);
+  int p = text.indexOf('=');
+  String name = text.substring(0, p);
+  text.remove(0,p+1);
+  p = text.indexOf('=');
+  text.remove(0,p+1);
+  text.trim();
+  String mess="-? > "+text;
+  mess = execCommand(chat_id,text);
+  sendtobot(name,mess);
+ }
 
-  for (int i=0; i<numNewMessages; i++) {
-    String chat_id = String(bot.messages[i].chat_id);
-    String text = bot.messages[i].text;
-
-    String from_name = bot.messages[i].from_name;
-    if (from_name == "") from_name = "Неизвестный";
-
-    if (text == "/b0") {
+String execCommand(String chat_id, String text){
+   String answ="";
+   if (text == "/b0") {
       Button(0);
-      bot.sendMessage(chat_id, "+Button 0", "");
+      answ="+Ok /b0";
+    }
+    
+   if (text == "/d") {
+      debug=!debug;
+      debug?answ="+ debug now is TRUE":answ="+ debug now is FALSE";
     }
 
     if (text == "/b1") {
       Button(1);
-      bot.sendMessage(chat_id, "+Button 1", "");
+      answ="+Ok /b1";
     }
 
     if (text == "/b2") {
       Button(2);
-      bot.sendMessage(chat_id, "+Button 2", "");
+      answ="+Ok /b2";
     }
-    
-    if (text.indexOf("/send")==0) {
-      String sa1 = getValue(text,' ',1);
-      String sa2 = getValue(text,' ',2);
-      String sa3 = getValue(text,' ',3);
-      String sa4 = getValue(text,' ',4);      
-      sendtobot(Esp32Clock,sa1+' '+sa2+' '+sa3+' '+sa4+addme);
-      bot.sendMessage(chat_id, "+Sending!", "");      
+
+    if (text.indexOf("=")==0) {
+      answerbot(chat_id, text);      
     }
 
     if (text.indexOf("/bud")==0) {
@@ -103,21 +89,19 @@ void handleNewMessages(int numNewMessages) {
       setBud(sh.toInt(),sm.toInt());
       mess+="+Установлено - "+sh+':'+sm;
       }
-      bot.sendMessage(chat_id, mess, "");
+      answ="+Ok /bud";
     }
 
     if (text == "/u") {
-      String mess="Uptime: "+millis2time();      
-      bot.sendMessage(chat_id, mess, "");
+      answ="+Ok uptime: "+millis2time();
     } 
 
     if (text == "/beep") {
       beep(250,125);
-      bot.sendMessage(chat_id, "+I'm beeping, ", "");
+      answ="+Ok /beep";
     }
     if (text == "/chat") {
-      beep(250,125);
-      bot.sendMessage(chat_id, '+'+chat_id, "");
+      answ="+Ok /chat="+chat_id;
     }
     /*
     if (getValue(text,' ',0) == "/int") {
@@ -129,18 +113,15 @@ void handleNewMessages(int numNewMessages) {
     }
     */
     if (text == "/status") {
-      String mess="";
-      mess+="+Button 0 - "+String(getButton(0))+"\n";
-      mess+="+Button 1 - "+String(getButton(1))+"\n";
-      mess+="+Button 2 - "+String(getButton(2))+"\n";
-      bot.sendMessage(chat_id, mess, "");
+      answ="+Ok /status "+String(getButton(0))+" "+String(getButton(1))+" "+String(getButton(2));
     }
      
     if (text == "/reboot") {
       String mess=F("+System is going to reboot NOW!");
-      bot.sendMessage(chat_id, mess, "");
+      //bot.sendMessage(chat_id, mess, "");
       //yield(2000);
       //ESP.restart(); //циклический ребут начинается - не отмечает сообщение
+      answ="+Ok /reboot not working";
     }
 
     if (text == "/start") {
@@ -153,11 +134,21 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/bud : to reset ringer\n";
       welcome += "/bud 18 00 : to set ringer\n";
       welcome += "/status : Returns current status of buttons\n";
-      bot.sendMessage(chat_id, welcome, "Markdown");
+      answ="+Ok /start";
     }
+   return answ; 
+ }
+
+
+void handleNewMessages(int numNewMessages) {
+  for (int i=0; i<numNewMessages; i++) {
+    String chat_id = String(bot.messages[i].chat_id);
+    String text = bot.messages[i].text;
+    from_name = bot.messages[i].from_name;
+    if (from_name == "") from_name = "UNKNOWN";
+    execCommand(chat_id,text);
   }
  } 
-
 void MyTeleBotInit(void){
   client.setInsecure(); // иначе не соединяется без этой команды
  } 
