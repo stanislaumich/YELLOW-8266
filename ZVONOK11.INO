@@ -487,8 +487,6 @@ time_t t = getNtpTime();
 
 */
 void myinit(){
-  Serial.begin(115200);
-  Serial.println("Starting!");
 
   pinMode(zvpin, OUTPUT);
   digitalWrite(zvpin,HIGH);
@@ -501,11 +499,6 @@ void myinit(){
 
   zoff();
   rtc.begin();
-  //setSyncProvider(getNtpTime);
-  //setSyncInterval(2*60*60);
-
-
-
 
   //writeee();
   readee();
